@@ -1,0 +1,661 @@
+"A datetime string with format `Y-m-d H:i:s`, e.g. `2018-01-01 13:00:00`."
+scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
+
+"A date string with format `Y-m-d`, e.g. `2011-05-23`."
+scalar Date @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\Date")
+##################
+#queries
+type Query {
+    users(search: String @search , orderBy: [OrderByClause!] @orderBy): [User!]! @paginate(defaultCount: 10)
+    discounts(search: String @search , orderBy: [OrderByClause!] @orderBy): [Discount!]! @paginate(defaultCount: 10)
+    products(branch: Int,search: String @search , orderBy: [OrderByClause!] @orderBy): [Product!]! @paginate(defaultCount: 10)
+    stock(branch_id: ID @eq , search: String @search , orderBy: [OrderByClause!] @orderBy): [Stock!]! @paginate(defaultCount: 10)
+    transactions(search: String @search , orderBy: [OrderByClause!] @orderBy, branch_id:Int @eq): [Transaction!]! @paginate(defaultCount: 10)
+    transaction(id:ID! @eq): Transaction! @find
+    discount(id:ID! @eq): Discount! @find
+    customers(branch_id : ID @eq ,search: String @search , orderBy: [OrderByClause!] @orderBy , branch_id:Int @eq): [Customer!]! @paginate(defaultCount: 10)
+    rebates(search: String @search , orderBy: [OrderByClause!] @orderBy): [Rebate!]! @paginate(defaultCount: 10)
+    suppliers(search: String @search , orderBy: [OrderByClause!] @orderBy): [Supplier!]! @paginate(defaultCount: 10)
+    supplier(id:ID! @eq): Supplier! @find
+    orders(created_by : Int @eq,created_at: DateTime @eq ,search: String @search , orderBy: [OrderByClause!] @orderBy , branch_id:Int @eq): [Order!]! @paginate(defaultCount: 10)
+    ordersQuery(created_by : Int,created_at: DateTime ,search: String , orderBy: String , orderFunc : String , branch_id:String , from:Date , to: Date):[Order!]! @paginate(defaultCount: 10 , builder: "App\\Order@filtered")
+    outcomingOrders(search: String @search , orderBy: [OrderByClause!] @orderBy): [OutcomingOrder!]! @paginate(defaultCount: 10)
+    outcomingOrder(id:ID! @eq): OutcomingOrder! @find
+    productByIsbn(isbn:String! @eq): Product! @find 
+    expenses(search: String @search , orderBy: [OrderByClause!] @orderBy): [Expense!]! @paginate(defaultCount: 10)
+    rebate(id:ID! @eq): Rebate! @find
+    product(id:ID! @eq , branch : ID): Product!
+    customer(id:ID! @eq): Customer! @find
+    order(id:ID! @eq): Order! @find
+    employee(id:ID! @eq): Employee! @find
+    branch(id:ID! @eq): Branch! @find
+    expense(id:ID! @eq): Expense! @find
+    employees(search: String @search , orderBy: [OrderByClause!] @orderBy): [Employee!]! @paginate(defaultCount: 10)
+    branches(search: String @search , orderBy: [OrderByClause!] @orderBy): [Branch!]! @paginate(defaultCount: 10)
+    roles(slug:String @neq ,search: String @search , orderBy: [OrderByClause!] @orderBy): [Role!]! @paginate(defaultCount: 10)
+    role(slug:String! @eq): Role! @find
+    roleById(id:ID! @eq): Role! @find
+    allRoles: [Role!]! @all
+    allSuppliers: [Supplier!]! @all
+    allCustomers: [Customer!]! @all
+    allBranches: [Branch!]! @all
+    allEmployees: [Employee!]! @all
+    permissions(search: String @search , orderBy: [OrderByClause!] @orderBy): [Permission!]! @paginate(defaultCount: 10)
+    user(id: ID @eq): User @find
+    allUsers: [User!]! @all
+    allProducts: [Product!]! @all
+    allBranches: [Branch!]! @all
+    allBranches: [Branch!]! @all
+    allPermissions: [Permission!]! @all
+    userByEmail(email: String @eq): User @find
+    me: User @middleware(checks:["auth:api"]) @auth
+    
+}
+
+
+##############
+# models
+type OrderPaginator {
+    data: [Order!]!
+    paginatorInfo: PaginatorInfo!
+}
+type User {
+    id: ID!
+    name: String!
+    email: String!
+    roles:[Role!]! @belongsToMany
+    employee:Employee @belongsTo
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+type DiscountProduct{
+    id:ID!
+    discounts:[Discount!]! @hasMany
+    products:[Product!]! @hasMany
+}
+
+type TransactionProduct{
+    id:ID!
+    transaction:[Transaction!]! @hasMany
+    qty:Int!
+    products:[Product!]! @hasMany
+}
+type Role {
+    id: ID!
+    name:String!
+	slug:String!
+	description:String
+	level:Int!
+	users:[User!]! @belongsToMany
+	permissions:[Permission!]! @belongsToMany
+    created_at: DateTime!
+    deleted_at: DateTime!
+    updated_at: DateTime!
+}
+
+type Permission {
+    id: ID!
+    roles:[Role!]! @belongsToMany
+    name:String!
+	slug:String!
+	description:String
+	model:String
+    created_at: DateTime!
+    deleted_at: DateTime!
+    updated_at: DateTime!
+}
+type Branch {
+    id: ID!
+    name:String!
+	email:String!
+	address:String
+	phone:String
+	rent:Int
+	bills:Int
+    balance:Int
+    employees:[Employee!]! @hasMany
+    orders:[Order!]! @hasMany
+    balances:[Balance!]! @hasMany
+    expenses:[Expense!]! @hasMany
+    stocks:[Stock!]! @hasMany
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+type Order{
+    id: ID!
+    note:String
+    discount:Int
+    created_by:User @belongsTo
+    updated_by:User @belongsTo
+    total:Int!
+    payment:String!
+    branch_id:Int
+    customer:Customer @belongsTo
+    branch:Branch @belongsTo
+    products:[Product!]! @belongsToMany
+    productsPivot:[OrderProduct!]! @hasMany
+    created_at: DateTime
+    deleted_at: DateTime
+    updated_at: DateTime    
+}
+
+type OrderProduct{
+    id: ID!
+    qty:Int!
+    product:Product! @belongsTo
+    order:Order! @belongsTo
+}
+
+type OutcomingOrderProduct{
+    id: ID!
+    qty:Int!
+    product:Product! @belongsTo
+    order:Order! @belongsTo
+}
+
+type Discount{
+    id: ID!
+    type:String!
+    value:Int
+    title:String!
+    percent:Int
+    products:[Product!]! @belongsToMany
+    branch:Branch @belongsTo
+    created_at:DateTime
+    updated_at:DateTime
+}
+
+
+type Transaction{
+    id:ID!
+    approved:Boolean
+    branch_id:Int
+    branch:Branch! @belongsTo
+    productsPivot:[TransactionProduct!]! @hasMany
+    created_at: DateTime!
+    updated_at: DateTime!  
+    products:[Product!]! @belongsToMany
+
+}
+type OutcomingOrder{
+    id: ID!
+    note:String
+    total:Int!
+    branch:Branch @belongsTo
+    productsPivot:[OutcomingOrderProduct!]! @hasMany
+    supplier:Supplier @belongsTo
+    created_by:User @belongsTo
+    updated_by:User @belongsTo
+    products:[Product!]! @belongsToMany
+    created_at: DateTime!
+    deleted_at: DateTime!
+    updated_at: DateTime!    
+}
+type Product{
+    id:ID!
+    name:String!
+    isbn:String!
+    purchased_price:Int!
+    price:Int!
+    qty:Int
+    orders:[Order] @belongsToMany
+    stocks:[Stock!] @hasMany
+    created_at: DateTime!
+    deleted_at: DateTime!
+    updated_at: DateTime! 
+}
+type Customer{
+    id:ID!
+    name:String!
+    email:String
+    intersts:String
+    branch_id:Int
+    branch:Branch @belongsTo
+    phone:String
+    created_at: DateTime!
+    deleted_at: DateTime!
+    updated_at: DateTime! 
+}
+
+type Supplier{
+    id:ID!
+    name:String!
+    email:String
+    phone:String
+    created_at: DateTime!
+    updated_at: DateTime! 
+}
+type Balance{
+    id: ID!
+    branch: Branch @belongsTo
+    balance:Int!
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+type Expense{
+    id: ID!
+    branch: Branch @belongsTo
+    note:String
+    value:Int!
+    date:Date!
+    created_at: DateTime!
+    deleted_at: DateTime!
+    updated_at: DateTime!
+}
+type Stock{
+    id: ID!
+    product: Product! @belongsTo
+    branch: Branch @belongsTo
+    qty:Int!
+    created_at: DateTime!
+    updated_at: DateTime!
+}
+type Employee {
+    id: ID!
+    name:String!
+	email:String!
+	phone:String
+    target:Int
+	salary:Int
+    rebates:[Rebate!] @hasMany
+    branch:Branch @belongsTo
+	user:Branch @hasOne
+    created_at: DateTime
+    updated_at: DateTime
+}
+
+type Rebate{
+    id:ID!
+    value:String!
+    employee:Employee! @belongsTo
+    cause:String
+    created_at: DateTime
+    updated_at: DateTime
+}
+
+type PosData{
+    rest:Int
+    over:Int
+    sales:Int!
+    target:Int
+
+}
+
+#########################
+#inputs
+input OrderByClause{
+    field: String!
+    order: SortOrder!
+}
+
+
+
+input CreateUserInput {
+    name: String! @rules(apply: ["required", "string"])
+    email: String! @rules(apply: ["required", "email" , "unique:users,email"])
+    roles: [String!]!
+    employee: Int @rules(apply: ["nullable"])
+    password: String! @rules(apply: ["required", "confirmed", "min:6"])
+    password_confirmation: String!
+}
+input UpdateUserInput {
+    id:ID!
+    name: String! @rules(apply: ["required", "string"])
+    email: String! @rules(apply: ["required", "email"])
+    roles: [String!]!
+    employee: Int @rules(apply: ["nullable"])
+    password: String @rules(apply: ["nullable", "min:6"])
+}
+
+###roles
+input CreateRoleInput {
+    name: String! @rules(apply: ["required", "string"])
+    slug: String! @rules(apply: ["required", "string"])
+    description: String @rules(apply: ["nullable"])
+    level: Int @rules(apply: ["nullable"])
+    permissions: [ID!]!
+    users: [ID]
+}
+input UpdateRoleInput {
+    id:ID!
+    name: String! @rules(apply: ["required", "string"])
+    slug: String! @rules(apply: ["required", "string" ])
+    description: String @rules(apply: ["nullable", "string"])
+    level: Int @rules(apply: ["nullable"])
+    permissions: [ID!]!
+    users: [ID]
+}
+
+
+
+input CreatePermissionInput{
+    name:String!
+    slug:String!
+    description:String
+    model:String
+}
+
+##expenses 
+input CreateExpenseInput {
+  note: String!
+  value: Int!
+  branch_id:ID
+  date:Date!
+}
+
+input UpdateExpenseInput {
+    id:ID!
+    note: String!
+    value: Int!
+    date:Date!
+    branch_id:ID
+}
+
+
+##branches 
+input CreateBranchInput {
+    name:String!
+    email:String
+    address:String
+    phone:String
+    rent:Int
+    bills:Int
+}
+
+input UpdateBranchInput {
+    id:ID!
+    name:String!
+    email:String!
+    address:String
+    phone:String
+    rent:Int
+    bills:Int
+}
+
+
+input CreateBalanceInput{
+    branch_id:ID!
+    balance:Int!
+}
+
+
+##products
+
+input CreateProductInput{
+    name:String!
+    isbn:String!
+    purchased_price:Int!
+    price:Int!
+}
+
+input UpdateProductInput{
+    id:ID!
+    name:String!
+    isbn:String!
+    purchased_price:Int!
+    price:Int!
+}
+
+input CreateStockInput{
+    product_id:ID
+    branch_id:ID
+    qty:Int!
+}
+
+## discounts
+input CreateDiscountInput{
+    type:String!
+    value:Int
+    title:String
+    percent:Int
+    branch_id:ID
+}
+
+input UpdateDiscountInput{
+    id:ID!
+    type:String!
+    value:Int
+    title:String
+    percent:Int
+    branch_id:ID
+}
+
+input CreateDiscountProductInput{
+discount:ID!
+products:[ID!]!
+}
+
+
+###customers
+input CreateCustomerInput{
+    name:String!
+    email:String
+    intersts:String
+    branch_id:Int
+    phone:String
+}
+
+input UpdateCustomerInput{
+    id:ID!
+    name:String!
+    email:String
+    intersts:String
+    branch_id:Int
+    phone:String
+}
+
+###suppliers
+input CreateSupplierInput{
+    name:String!
+    email:String
+    phone:String
+}
+
+input UpdateSupplierInput{
+    id:ID!
+    name:String!
+    email:String
+    phone:String
+}
+
+###transactions
+input CreateTransactionInput{
+    branch_id:ID!
+}
+input UpdateTransactionInput{
+    branch_id:ID!
+    id:ID!
+    approved:Boolean
+}
+
+input CreateTransactionProductInput{
+    branch:ID!
+    from_branch:ID
+    products:[ID!]!
+    qtys:[Int!]!
+}
+
+input UpdateTransactionProductInput{
+    transaction:ID!
+    branch:ID!
+    products:[ID!]!
+    qtys:[Int!]!
+}
+
+
+###orders
+input CreateOrderInput{
+    note:String
+    created_by:ID!
+    payment:String!
+    discount:Int
+    total:Int!
+    customer_id:ID
+    branch_id:ID
+}
+
+input CreateOrderProductInput{
+    products:[ID!]!
+    qtys:[Int!]!
+    note:String
+    order:ID
+    created_by:ID!
+    payment:String!
+    discount:Int
+    total:Int!
+    customer_id:ID
+    branch:ID
+}
+
+input UpdateOrderInput{
+    id:ID!
+    note:String
+    payment:String!
+    updated_by:ID!
+    discount:Int
+    total:Int!
+    customer_id:ID
+    branch_id:ID
+}
+#employess
+input CreateEmployeeInput{
+    name:String!
+    phone:String
+    target:Int
+    email:String
+    email:String
+    branch_id:ID
+    salary:Int!
+}
+
+input UpdateEmployeeInput{
+    id:ID!
+    name:String!
+    phone:String
+    target:Int
+    email:String
+    email:String
+    branch_id:ID
+    salary:Int!
+}
+
+
+## outcoming orders
+input CreateOutComingOrderInput{
+    note:String
+    total:Int!
+    supplier_id:ID
+    created_by:ID!
+    branch_id:ID
+}
+
+input UpdateOutComingOrderInput{
+    id:ID!
+    note:String
+    total:Int!
+    supplier_id:ID
+    branch_id:ID
+    updated_by:ID!
+}
+input CreateOutComingOrderProductInput{
+    outcomingOrder:ID!
+    products:[ID!]!
+    qtys:[Int!]!
+    branch:ID
+}
+
+
+
+
+#######################
+###############
+#mutaions
+type Mutation {
+    createUser(input: CreateUserInput @spread): User
+    updateUser(input: UpdateUserInput @spread): User
+    deleteUser(id:ID!): User @delete
+    deleteUsers(id:[ID!]!): [User!]! @delete
+    posData(id:ID! @spread):PosData
+    ##roles
+    createRole(input: CreateRoleInput @spread): Role
+    updateRole(input: UpdateRoleInput @spread): Role
+    deleteRole(id:ID!): Role @delete
+    deleteRoles(id:[ID!]!): [Role!]! @delete
+    ##expenses
+    createExpense(input: CreateExpenseInput! @spread): Expense @create
+    updateExpense(input: UpdateExpenseInput! @spread): Expense @update
+    deleteExpense(id:ID!): Expense @delete
+    deleteExpenses(id:[ID!]!): Expense @delete
+    ##branches
+    createBranch(input: CreateBranchInput! @spread): Branch @create
+    createBalance(input: CreateBalanceInput! @spread): Balance @create
+    updateBranch(input: UpdateBranchInput! @spread): Branch @update
+    deleteBranch(id:ID!): Branch @delete
+    deleteBranches(id:[ID!]!): Branch @delete
+
+    ##products
+    createProduct(input: CreateProductInput! @spread): Product @create
+    createStock(input: CreateStockInput! @spread): Stock @create
+    updateProduct(input: UpdateProductInput! @spread): Product @update
+    deleteProduct(id:ID!): Product @delete
+    deleteProducts(id:[ID!]!): Product @delete
+
+
+    ##discounts
+    createDiscount(input: CreateDiscountInput! @spread): Discount @create
+    createDiscountProduct(input: CreateDiscountProductInput! @spread): Discount
+    updateDiscount(input: UpdateDiscountInput! @spread): Discount @update
+    deleteDiscount(id:ID!): Discount @delete
+    deleteDiscounts(id:[ID!]!): Discount @delete
+
+
+    ##customers
+    createCustomer(input: CreateCustomerInput! @spread): Customer @create
+    updateCustomer(input: UpdateCustomerInput! @spread): Customer @update
+    deleteCustomer(id:ID!): Customer @delete
+    deleteCustomers(id:[ID!]!): Customer @delete
+
+    ##suppliers
+    createSupplier(input: CreateSupplierInput! @spread): Supplier @create
+    updateSupplier(input: UpdateSupplierInput! @spread): Supplier @update
+    deleteSupplier(id:ID!): Supplier @delete
+    deleteSuppliers(id:[ID!]!): Supplier @delete
+
+    ##orders
+    createOrder(input: CreateOrderInput! @spread): Order @create
+    createOrderProduct(input: CreateOrderProductInput! @spread): Order 
+    updateOrderProduct(input: CreateOrderProductInput! @spread): Order 
+    updateOrder(input: UpdateOrderInput! @spread): Order @update
+    deleteOrder(id:ID!): Order @delete
+    deleteOrders(id:[ID!]!): Order @delete
+
+    ##outcoming orders
+    createOutcomingOrder(input: CreateOutComingOrderInput! @spread): OutcomingOrder @create
+    createOutcomingOrderProduct(input: CreateOutComingOrderProductInput! @spread): OutcomingOrder 
+    updateOutcomingOrderProduct(input: CreateOutComingOrderProductInput! @spread): OutcomingOrder 
+    updateOutcomingOrder(input: UpdateOutComingOrderInput! @spread): OutcomingOrder @update
+    deleteOutcomingOrder(id:ID!): OutcomingOrder @delete
+    deleteOutcomingOrders(id:[ID!]!): OutcomingOrder @delete
+
+    ##transactions
+    createTransaction(input: CreateTransactionInput! @spread): Transaction @create
+    updateTransaction(input: UpdateTransactionInput! @spread): Transaction @update
+    createTransactionProduct(input: CreateTransactionProductInput! @spread): Transaction 
+    updateTransactionProduct(input: UpdateTransactionProductInput! @spread): Transaction 
+    deleteTransaction(id:ID!): Transaction @delete
+    deleteTransactions(id:[ID!]!): Transaction @delete
+    ##employees
+    createEmployee(input: CreateEmployeeInput! @spread): Employee @create
+    updateEmployee(input: UpdateEmployeeInput! @spread): Employee @update
+    deleteEmployee(id:ID!): Employee @delete
+    deleteEmployees(id:[ID!]!): Employee @delete
+    
+    deleteRecord(id:ID! , table:String!): ID! 
+    deleteRecords(ids:[ID!]! , table:String!): [ID!] 
+}
+###########
+#enums
+enum SortOrder {
+    ASC
+    DESC
+}

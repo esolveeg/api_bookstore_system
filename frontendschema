@@ -1,0 +1,40 @@
+# mutation {
+#   login(input: {username: "pos@readerscorner.co", password: "123456"}) {
+#     access_token
+#   }
+# }
+
+# query {
+#   branches(first:3,page:1, orderBy:[{field:"id" , order:ASC}]){
+#     data{
+#       name
+#      employees{
+#       name
+#      }
+#     balances{
+#       balance
+#     }
+      
+#     }
+#   }
+# }
+# query {
+#   users(first:3,page:1, orderBy:[{field:"name" , order:DESC}]){
+#     data{
+#       name
+#       email
+#       employee{
+#         name
+#       }
+#       roles{
+#         name
+#         slug
+#         permissions{
+#           name
+#           slug
+#         }
+#       }
+      
+#     }
+#   }
+# }
